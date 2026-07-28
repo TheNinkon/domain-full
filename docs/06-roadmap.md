@@ -960,3 +960,32 @@ En vez de pedirle crear una clave v2 nueva, se adaptó el código a v3:
 - Verificado con `curl -H "Host: mitienda.test" -A "<user-agent real>"`: la landing
   renderiza sin el div `.g-recaptcha`, con el input oculto `recaptchaResponse` presente
   y el script apuntando a `api.js?render=<sitekey>`.
+
+### Favicon dinámico por dominio (mismo estilo del ícono del sidebar)
+
+Pedido: que cada dominio en venta tenga su propio favicon, con la misma inicial y el
+mismo fondo (degradado `#696cff → #8f92ff`) que ya usa el "logo" del sidebar del
+marketplace (`marketplaceLayout.blade.php`). Se generó dinámicamente en vez de pedir
+subir un archivo por dominio:
+
+- `MarketplaceLandingController::favicon()` arma un SVG on-the-fly (rect con
+  `border-radius` + el degradado + la inicial en mayúscula del nombre del dominio) y lo
+  devuelve con `Content-Type: image/svg+xml` y cache de 1 día. `ResolveMarketplaceHost`
+  despacha tanto `GET /favicon.ico` como `GET /favicon.svg` a este método — cualquiera
+  de los dos formatos que pida el navegador cae acá.
+- `commonMaster.blade.php` (el `<head>` compartido de toda la app) ahora permite
+  overridear el favicon igual que ya se hacía con `full-title`/`meta-description`/
+  `robots`/`canonical`: `@yieldContent('favicon', ...)` con fallback al ícono estático
+  original de Domain Manager. `marketplaceLayout.blade.php` define ese override una
+  sola vez (`@section('favicon', $siteRoot.'/favicon.svg')`), así que las 3 páginas
+  públicas del marketplace (landing/metrics/offers) lo heredan automáticamente sin
+  tocar cada vista.
+- **Bug encontrado en el camino**: había un `public/favicon.ico` estático de 0 bytes
+  (resto del scaffold original de Laravel) — Apache lo servía directo por existir en
+  disco, sin pasar por el `.htaccess`/`index.php`, así que la ruta `/favicon.ico` nunca
+  llegaba a Laravel ni al middleware nuevo. Se borró el archivo para que el fallback de
+  `/favicon.ico` también resuelva al SVG dinámico.
+- Verificado con curl: `/favicon.svg` y `/favicon.ico` devuelven el mismo SVG con la
+  inicial correcta y `Content-Type: image/svg+xml`; las 3 páginas del marketplace
+  (`/`, `/metrics`, `/offers`) referencian `favicon.svg` en el `<link rel="icon">`; el
+  login del panel admin sigue usando el ícono estático original sin cambios.

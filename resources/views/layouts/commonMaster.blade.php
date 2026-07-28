@@ -70,8 +70,10 @@
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <!-- Canonical SEO -->
   <link rel="canonical" href="{{ trim($__env->yieldContent('canonical', request()->fullUrl())) }}" />
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/favicon/favicon.ico') }}" />
+  <!-- Favicon: public marketplace pages override this with a per-domain icon -->
+  <link rel="icon"
+    type="{{ trim($__env->yieldContent('favicon-type', 'image/x-icon')) }}"
+    href="{{ trim($__env->yieldContent('favicon', asset('assets/img/favicon/favicon.ico'))) }}" />
 
   <!-- Include Styles -->
   <!-- $isFront is used to append the front layout styles only on the front layout otherwise the variable will be blank -->

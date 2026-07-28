@@ -9,6 +9,11 @@
 
 @extends('layouts/commonMaster')
 
+{{-- Per-domain favicon: same initial-letter + gradient as the sidebar "logo" below,
+     not Domain Manager's own icon (this page represents the domain, not the admin app). --}}
+@section('favicon', $siteRoot . '/favicon.svg')
+@section('favicon-type', 'image/svg+xml')
+
 @section('layoutContent')
 <style>
   :root { --dm-bottom-nav-height: 64px; }

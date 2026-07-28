@@ -26,6 +26,10 @@ class ResolveMarketplaceHost
 
         $controller = app(MarketplaceLandingController::class);
 
+        if ($request->isMethod('get') && ($request->is('favicon.ico') || $request->is('favicon.svg'))) {
+            return $controller->favicon($request);
+        }
+
         if ($request->isMethod('post') && $request->is('offers')) {
             return response($controller->storeOffer($request));
         }

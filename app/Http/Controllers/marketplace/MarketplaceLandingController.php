@@ -13,6 +13,7 @@ use App\Models\DomainOffer;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -57,6 +58,38 @@ class MarketplaceLandingController extends Controller
             'chartLabels' => $last30Days->map(fn ($date) => Carbon::parse($date)->format('M d')),
             'chartSeries' => $last30Days->map(fn ($date) => $statsByDate->get($date)?->visits ?? 0),
         ]);
+    }
+
+    /**
+     * Per-domain favicon: same idea as the sidebar "logo" (initial letter,
+     * same brand gradient) instead of Domain Manager's own icon — this page
+     * represents the domain being sold, not the admin app. Served as SVG so
+     * there's nothing to generate/store per domain; it's built on the fly
+     * from the domain's own name.
+     */
+    public function favicon(Request $request): Response
+    {
+        $domain = $this->resolveDomain($request);
+        $initial = htmlspecialchars(mb_strtoupper(mb_substr($domain->name, 0, 1)), ENT_XML1);
+
+        $svg = <<<SVG
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#696cff"/>
+              <stop offset="100%" stop-color="#8f92ff"/>
+            </linearGradient>
+          </defs>
+          <rect width="100" height="100" rx="22" fill="url(#g)"/>
+          <text x="50" y="54" text-anchor="middle" dominant-baseline="middle"
+                font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700"
+                fill="#ffffff">{$initial}</text>
+        </svg>
+        SVG;
+
+        return response($svg, 200)
+            ->header('Content-Type', 'image/svg+xml')
+            ->header('Cache-Control', 'public, max-age=86400');
     }
 
     public function offers(Request $request): View
