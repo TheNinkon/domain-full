@@ -1,0 +1,32 @@
+<?php
+// Variables
+return [
+  "creatorName" => "",
+  "creatorUrl" => "",
+  "templateName" => "Domain Manager",
+  "templateSuffix" => "Panel privado de gestión de dominios",
+  "templateVersion" => "1.0.0",
+  "templateFree" => false,
+  "templateDescription" => "Gestión y seguimiento de la cartera de dominios propios",
+  "templateKeyword" => "domain manager, dominios, portafolio",
+  "licenseUrl" => "https://themeforest.net/licenses/standard",
+  "livePreview" => "",
+  "productPage" => "",
+  "support" => "",
+  "moreThemes" => "",
+  "ogTitle" => "Domain Manager",
+  "ogImage" => "",
+  "ogType" => "product",
+  "documentation" => "https://demos.pixinvent.com/vuexy-html-admin-template/documentation",
+  "generator" => "",
+  "changelog" => "https://demos.pixinvent.com/vuexy/changelog.html",
+  "repository" => "https://github.com/pixinvent/vuexy-html-laravel-admin-template",
+  "gitRepo" => "vuexy-html-laravel-admin-template",
+  "gitRepoAccess" => "https://tools.pixinvent.com/github/github-access",
+  "githubFreeUrl" => "https://github.com/pixinvent",
+  "facebookUrl" => "https://www.facebook.com/pixinvents/",
+  "twitterUrl" => "https://x.com/pixinvents",
+  "githubUrl" => "https://github.com/pixinvent",
+  "dribbbleUrl" => "https://dribbble.com/pixinvent",
+  "instagramUrl" => "https://www.instagram.com/pixinvents/"
+];

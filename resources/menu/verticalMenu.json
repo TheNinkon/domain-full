@@ -1,0 +1,50 @@
+{
+  "menu": [
+    {
+      "url": "/",
+      "name": "Dashboard",
+      "icon": "menu-icon icon-base ti tabler-smart-home",
+      "slug": "dashboard-analytics"
+    },
+    {
+      "name": "Dominios",
+      "icon": "menu-icon icon-base ti tabler-world",
+      "slug": "domains",
+      "submenu": [
+        {
+          "url": "/domains",
+          "name": "Listado",
+          "slug": "domains.index"
+        },
+        {
+          "url": "/domains/categories",
+          "name": "Categorías",
+          "slug": "domains.categories.index"
+        }
+      ]
+    },
+    {
+      "url": "/projects",
+      "name": "Proyectos",
+      "icon": "menu-icon icon-base ti tabler-briefcase",
+      "slug": "projects.index"
+    },
+    {
+      "name": "Configuración",
+      "icon": "menu-icon icon-base ti tabler-settings",
+      "slug": "settings",
+      "submenu": [
+        {
+          "url": "/settings/mail",
+          "name": "Email (SMTP)",
+          "slug": "settings.mail.edit"
+        },
+        {
+          "url": "/settings/captcha",
+          "name": "reCAPTCHA",
+          "slug": "settings.captcha.edit"
+        }
+      ]
+    }
+  ]
+}
