@@ -842,3 +842,77 @@ log correcto; `tecwi.co` (Namecheap) renovado transfiriéndolo a Cloudflare → 
 actual → rechazado por validación, no se guardó nada. Ambos dominios se restauraron a su
 estado real importado después de las pruebas (se habían quedado con datos de prueba
 tipo GoDaddy/Cloudflare a $15.99/$9.99 que no son reales).
+
+## Color de marca fijo, publicación en GitHub y preparación de producción (2026-07-28)
+
+Pedido: fijar el color de marca del admin en `#0D9394` quitando la posibilidad de que un
+usuario final lo cambie, subir la primera versión del proyecto a GitHub, documentar todo,
+y dejar el código listo para desplegar en el cPanel real del usuario.
+
+### Color fijo + Template Customizer eliminado
+
+`config/custom.php`: `primaryColor` pasó de estar comentado a `'#0D9394'`, y
+`hasCustomizer`/`displayCustomizer` pasaron de `true` a `false`. Verificado con curl
+contra el dashboard autenticado real: 0 referencias a `TemplateCustomizer`/
+`template-customizer.js` en el HTML servido, y `0D9394` presente. **Nota para el
+usuario**: si ya habías tocado el customizer alguna vez en el navegador, puede haber
+quedado una cookie (`admin-primaryColor`/`front-primaryColor`) que pise este color hasta
+que la borres — ver el comentario del propio `config/custom.php` con el link a cómo
+limpiar el local storage.
+
+### Auditoría de seguridad antes del primer commit (repo público)
+
+Antes de subir nada se auditó el repo completo en busca de secretos, porque el usuario
+eligió explícitamente que el repositorio fuera **público**:
+
+- Se confirmó por grep que la contraseña real del admin (generada, en `.env`) no
+  aparece en ningún archivo trackeado — solo en `.env`, que nunca se commitea.
+- **Bug encontrado**: `.gitignore` tenía la línea `.env` comentada (`# .env`) en vez de
+  activa — es decir, `.env` no estaba realmente ignorado. Se corrigió. Además el `.env`,
+  `.DS_Store` y la carpeta `notion/` completa ya estaban `git add`-eados al índice desde
+  antes de este arreglo (el repo ya tenía un `.git` con cambios en stage de una sesión
+  previa) — se sacaron del índice con `git rm -r --cached .env .DS_Store notion` sin
+  borrar los archivos del disco, y se confirmó con `git status --porcelain` que no
+  quedaba rastro.
+- La carpeta `notion/` (export real de Notion con precios de compra, negociaciones y
+  ciudades) se excluyó del repo por decisión explícita del usuario, aunque sus datos ya
+  están importados en la base de datos (ver la sección anterior de este mismo archivo) —
+  el comando `domains:import-notion` queda en el repo pero simplemente no tendrá su
+  carpeta fuente en otros clones, lo cual es aceptable (es un comando de un solo uso).
+  Se agregó `/bootstrap/cache/*.php` y `.DS_Store` al `.gitignore` también (no estaban
+  cubiertos antes).
+- Se revisó `docs/06-roadmap.md` en busca de datos financieros/personales sensibles: la
+  única mención (precio real de `mariachis.co` en COP) se juzgó de bajo riesgo y se dejó,
+  ya que el detalle realmente sensible (con quién se negoció, ciudades) solo vive en la
+  carpeta `notion/` ya excluida.
+- `.env.example` corregido (`APP_NAME=Laravel` → `APP_NAME="Domain Manager"`); el resto
+  ya eran valores placeholder seguros.
+
+### Publicación en GitHub
+
+`gh` (GitHub CLI) no estaba instalado — se instaló vía Homebrew. La autenticación
+(`gh auth login --web`) la corrió el propio usuario (paso interactivo/navegador). El
+usuario creó y publicó el repositorio **público** `TheNinkon/domain-full` y configuró el
+remoto; el commit inicial (`c1d4950`, 576 archivos) se hizo localmente con identidad de
+git configurada para este repo (`git config user.name`/`user.email`, no estaba seteada
+ni global ni localmente) y se subió con `git push -u origin main`. Verificado con
+`git ls-tree -r origin/main` que no hay rastro de `.env`, `notion/` ni `.DS_Store` en la
+rama remota.
+
+### Documentación
+
+- `README.md` (el genérico de Laravel que traía el skeleton, nunca reescrito) se
+  reemplazó por una descripción real del proyecto en inglés (convención de GitHub):
+  qué hace, stack, tabla de índice a `docs/`, setup local, y puntero a la guía de
+  despliegue.
+- Nueva `docs/07-despliegue-produccion.md`: guía de despliegue a cPanel asumiendo acceso
+  Terminal/SSH (confirmado por el usuario) — dominio admin + addon domains todos
+  apuntando al mismo `public/` para que el ruteo por `Host` de
+  `ResolveMarketplaceHost` funcione, `composer install --no-dev`, build de Vite
+  (`public/build/` no viaja por git, hay que compilarlo aparte), variables críticas de
+  `.env` de producción (`APP_ENV`, `APP_DEBUG=false`, `APP_URL` exacto — es la clave que
+  usa el middleware para distinguir "es el admin" de "es un dominio en venta"),
+  migraciones con `--force`, orden correcto de `config:cache`/`route:cache`/
+  `view:cache` respecto a tener el `.env` completo, permisos de `storage`/
+  `bootstrap/cache`, cron para `schedule:run` (dispara `domains:check-expirations` de
+  Milestone 6), y checklist de verificación post-deploy.
