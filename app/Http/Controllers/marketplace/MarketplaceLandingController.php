@@ -205,6 +205,13 @@ class MarketplaceLandingController extends Controller
      * instead of a plain pass/fail — 0.5 is Google's own suggested cutoff.
      * Skips verification entirely if no reCAPTCHA is configured yet, so the
      * form keeps working before the admin sets it up (see /settings/captcha).
+     *
+     * One reCAPTCHA key covers every "for sale" domain (dozens over time), so
+     * Google's own per-domain allowlist ("Verify the origin of reCAPTCHA
+     * solutions" in the console) was turned off — re-adding every new domain
+     * there by hand doesn't scale. The domain check moves here instead: the
+     * siteverify response's own "hostname" field is compared against the
+     * host of THIS request, same guarantee, no console step per domain.
      */
     private function verifyCaptcha(Request $request): bool
     {
@@ -227,6 +234,10 @@ class MarketplaceLandingController extends Controller
         ]);
 
         if (! ($response->json('success') ?? false)) {
+            return false;
+        }
+
+        if ($response->json('hostname') !== $request->getHost()) {
             return false;
         }
 

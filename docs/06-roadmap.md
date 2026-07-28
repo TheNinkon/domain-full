@@ -989,3 +989,21 @@ subir un archivo por dominio:
   inicial correcta y `Content-Type: image/svg+xml`; las 3 páginas del marketplace
   (`/`, `/metrics`, `/offers`) referencian `favicon.svg` en el `<link rel="icon">`; el
   login del panel admin sigue usando el ícono estático original sin cambios.
+
+### reCAPTCHA: se quitó la lista de dominios de Google, validación de hostname movida al backend
+
+Al probar en producción, la clave v3 solo tenía `domain.tecwi.co` (el admin) en
+"Dominios" — el formulario real corre en los dominios en venta (`artistas.app`,
+`demandium.com`, etc.), ninguno estaba en la lista, así que Google rechazaba con
+"el dominio de la clave de sitio no es válido". Agregarlo manualmente resolvió el caso
+puntual, pero el usuario notó (correctamente) que esto no escala: cada dominio nuevo
+que se ponga en venta requeriría volver a esa pantalla de Google a mano.
+
+Solución adoptada: en la consola de Google se desactivó "Verificar el origen de las
+soluciones de reCAPTCHA" para esta clave (ya no exige que el dominio esté en una
+lista), y `MarketplaceLandingController::verifyCaptcha()` ahora hace esa misma
+verificación por su cuenta — la respuesta de `siteverify` incluye un campo `hostname`
+(de qué dominio vino la solución) que se compara contra `$request->getHost()`; si no
+coincide, se rechaza igual que antes. Mismo nivel de seguridad, sin el paso manual por
+dominio: un dominio nuevo puesto en venta funciona con el formulario de oferta de
+inmediato, sin tocar la consola de Google.
