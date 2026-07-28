@@ -916,3 +916,47 @@ rama remota.
   `view:cache` respecto a tener el `.env` completo, permisos de `storage`/
   `bootstrap/cache`, cron para `schedule:run` (dispara `domains:check-expirations` de
   Milestone 6), y checklist de verificación post-deploy.
+
+### Problemas reales encontrados durante el primer deploy en cPanel
+
+- **`composer install --no-dev` rompe el seeder de demo**: `DatabaseSeeder` crea
+  categorías/dominios de ejemplo vía Factories, que dependen de `fakerphp/faker`
+  (dependencia de `require-dev`, excluida por `--no-dev`) — el seed truena con
+  `Call to undefined function Database\Factories\fake()`. No es grave: el usuario
+  admin se crea **antes** que las categorías en el seeder, así que ya queda creado
+  aunque el resto del seed falle; los datos de ejemplo no son necesarios en
+  producción de todas formas.
+- **500 sin ningún log** (ni en `storage/logs/laravel.log` ni con `APP_DEBUG=true`):
+  causado por haber clonado el repo por SSH conectado como `root` en vez del usuario
+  de la cuenta cPanel (`mariachis`). Todos los archivos quedaron con dueño `root`, pero
+  Apache/PHP-FPM sirven el sitio como el usuario de la cuenta — sin poder leer/escribir
+  los archivos, el error ocurre antes de que Laravel llegue a inicializar su logger.
+  Se resolvió con `chown -R mariachis:mariachis` sobre todo el directorio del proyecto.
+  Este mismo problema de permisos también bloqueaba a WHM al intentar cambiar la
+  versión de PHP del dominio (no podía escribir `public/.htaccess.lock`).
+- **Assets de Vite sin Node en el servidor**: el hosting no tenía Node disponible por
+  SSH, así que en vez de compilar en el servidor se compiló `yarn build` en local y se
+  subió `public/build/` empaquetado en un zip.
+
+### reCAPTCHA: se adoptó v3, no v2 (decisión tomada después de desplegar)
+
+El usuario ya tenía una clave de reCAPTCHA **v3** creada en Google (no v2 Checkbox, que
+es lo que el código original esperaba) — probarla daba el error real de Google "el tipo
+de clave no es válido" (v3 no es compatible con el widget `g-recaptcha`/checkbox de v2).
+En vez de pedirle crear una clave v2 nueva, se adaptó el código a v3:
+
+- La vista (`landing.blade.php`) ya no muestra la casilla "No soy un robot": el script
+  se carga con `?render={sitekey}`, y al enviar el formulario un listener de `submit`
+  hace `e.preventDefault()`, ejecuta `grecaptcha.execute(siteKey, {action:
+  'offer_submit'})`, mete el token en un input oculto (`g-recaptcha-response`) y recién
+  ahí llama a `form.submit()` de verdad (con una bandera `dataset.captchaReady` para no
+  entrar en loop infinito la segunda vez).
+- `MarketplaceLandingController::verifyCaptcha()` ahora, además de `success`, exige
+  `score >= 0.5` (el umbral que Google mismo sugiere como default) — v3 no da un
+  pass/fail directo, da una probabilidad de que sea humano.
+- Un solo par de claves reCAPTCHA sirve para **todos** los dominios en venta a la vez:
+  Google permite registrar varios dominios bajo la misma clave (se agregan uno por
+  línea en la consola de reCAPTCHA), no hace falta una clave por dominio.
+- Verificado con `curl -H "Host: mitienda.test" -A "<user-agent real>"`: la landing
+  renderiza sin el div `.g-recaptcha`, con el input oculto `recaptchaResponse` presente
+  y el script apuntando a `api.js?render=<sitekey>`.

@@ -13,7 +13,7 @@ $shouldOpenOfferModal = $offerSubmitted || count($formErrors) > 0;
 
 @section('vendor-script')
 @if ($captchaSiteKey)
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script src="https://www.google.com/recaptcha/api.js?render={{ $captchaSiteKey }}" async defer></script>
 @endif
 @endsection
 
@@ -186,6 +186,27 @@ $shouldOpenOfferModal = $offerSubmitted || count($formErrors) > 0;
   });
 </script>
 @endif
+@if ($captchaSiteKey)
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('offerForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function (e) {
+      if (form.dataset.captchaReady === '1') return;
+
+      e.preventDefault();
+      grecaptcha.ready(function () {
+        grecaptcha.execute('{{ $captchaSiteKey }}', { action: 'offer_submit' }).then(function (token) {
+          document.getElementById('recaptchaResponse').value = token;
+          form.dataset.captchaReady = '1';
+          form.submit();
+        });
+      });
+    });
+  });
+</script>
+@endif
 @endsection
 
 @section('content')
@@ -299,12 +320,13 @@ $shouldOpenOfferModal = $offerSubmitted || count($formErrors) > 0;
             </div>
 
             @if ($captchaSiteKey)
-              <div class="mb-4">
-                <div class="g-recaptcha" data-sitekey="{{ $captchaSiteKey }}"></div>
-              </div>
+              <input type="hidden" name="g-recaptcha-response" id="recaptchaResponse" value="" />
             @endif
 
             <p class="dm-trust mb-0">Your contact info is only shared with the domain owner.</p>
+            @if ($captchaSiteKey)
+              <p class="dm-trust mb-0">Protected by reCAPTCHA.</p>
+            @endif
           </form>
         </div>
         <div class="modal-footer">

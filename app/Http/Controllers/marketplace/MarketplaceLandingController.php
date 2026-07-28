@@ -166,6 +166,10 @@ class MarketplaceLandingController extends Controller
     }
 
     /**
+     * reCAPTCHA v3: no checkbox, the token comes from an invisible
+     * grecaptcha.execute() call the form's JS runs on submit (see
+     * landing.blade.php). Google's response includes a 0.0-1.0 "score"
+     * instead of a plain pass/fail — 0.5 is Google's own suggested cutoff.
      * Skips verification entirely if no reCAPTCHA is configured yet, so the
      * form keeps working before the admin sets it up (see /settings/captcha).
      */
@@ -189,7 +193,11 @@ class MarketplaceLandingController extends Controller
             'remoteip' => $request->ip(),
         ]);
 
-        return (bool) ($response->json('success') ?? false);
+        if (! ($response->json('success') ?? false)) {
+            return false;
+        }
+
+        return (float) ($response->json('score') ?? 0) >= 0.5;
     }
 
     /**
